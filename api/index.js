@@ -3,22 +3,22 @@ const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 module.exports = async (req, res) => {
-  // Read current count
   let { data, error } = await supabase
     .from('view_counter')
     .select('count')
     .eq('id', 1)
-    .single();
+    .maybeSingle(); // instead of .single()
 
-  if (error) {
-    console.log(error);
-    res.status(500).send("Database error");
-    return;
+  if (!data) {
+    await supabase
+      .from('view_counter')
+      .insert({ id: 1, count: 0 });
+
+    data = { count: 0 };
   }
 
   let newCount = data.count + 1;
 
-  // Update count
   await supabase
     .from('view_counter')
     .update({ count: newCount })
