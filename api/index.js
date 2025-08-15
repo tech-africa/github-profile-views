@@ -11,6 +11,7 @@ module.exports = async (req, res) => {
     .single();
 
   if (error) {
+    console.log(error);
     res.status(500).send("Database error");
     return;
   }
