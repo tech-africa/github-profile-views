@@ -1,26 +1,33 @@
-const fs = require("fs");
-const path = require("path");
+const { createClient } = require('@supabase/supabase-js');
 
-const viewsFile = path.join(__dirname, "..", "views.json");
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-if (!fs.existsSync(viewsFile)) {
-  fs.writeFileSync(viewsFile, JSON.stringify({ views: 0 }));
-}
+module.exports = async (req, res) => {
+  // Read current count
+  let { data, error } = await supabase
+    .from('view_counter')
+    .select('count')
+    .eq('id', 1)
+    .single();
 
-function incrementViews() {
-  let data = JSON.parse(fs.readFileSync(viewsFile));
-  data.views += 1;
-  fs.writeFileSync(viewsFile, JSON.stringify(data));
-  return data.views;
-}
+  if (error) {
+    res.status(500).send("Database error");
+    return;
+  }
 
-module.exports = (req, res) => {
-  const count = incrementViews();
-  res.setHeader("Content-Type", "image/svg+xml");
+  let newCount = data.count + 1;
+
+  // Update count
+  await supabase
+    .from('view_counter')
+    .update({ count: newCount })
+    .eq('id', 1);
+
+  res.setHeader('Content-Type', 'image/svg+xml');
   res.status(200).send(`
     <svg xmlns="http://www.w3.org/2000/svg" width="160" height="30">
       <rect width="160" height="30" fill="#0e75b6"/>
-      <text x="10" y="20" font-size="16" fill="#fff">Views: ${count}</text>
+      <text x="10" y="20" font-size="16" fill="#fff">Views: ${newCount}</text>
     </svg>
   `);
 };
